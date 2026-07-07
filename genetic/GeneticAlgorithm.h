@@ -48,6 +48,8 @@ private:
     //вычисление числа приспособленности
     double calculateFitness(int cost);
 
+    void evaluateIndividual(Individual& individual, const std::vector<std::vector<int>>& costMatrix);
+
     //создание начальной популяции
     std::vector<Individual> createInitialPopulation(
         const std::vector<std::vector<int>>& costMatrix,
