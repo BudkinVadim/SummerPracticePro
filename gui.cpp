@@ -1,6 +1,7 @@
 #include "lib/raylib.h"
 #include <iostream>
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 // Класс кнопки
@@ -165,6 +166,15 @@ void menu_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     }
 }
 
+struct Scaling
+{
+    int minX;
+    int maxX;
+    int minY;
+    int maxY;
+};
+
+// Функция добавления точки из вектора точек
 void addPoint(std::vector<Vector2>& points, const GAResult& data, const Rectangle& graphArea, Scaling& scale, int& currStep)
 {
 
@@ -172,7 +182,7 @@ void addPoint(std::vector<Vector2>& points, const GAResult& data, const Rectangl
     int y = data.history[currStep].bestCost;
 
 
-    scale.maxX = currStep+1;
+    scale.maxX = currStep + 1;
     scale.minY = std::min(scale.minY, y);
     scale.maxY = std::max(scale.maxY, y);
 
@@ -191,9 +201,16 @@ void addPoint(std::vector<Vector2>& points, const GAResult& data, const Rectangl
         points[i].y = graphArea.y + graphArea.height - 10 - (y - scale.minY) * yScale;
     }
 
+    if (points.size() == 1)
+    {
+        points[0].x = graphArea.x + 10 + xScale;
+        points[0].y = graphArea.y + graphArea.height - 10 - yScale/2;
+    }
+
     currStep++;
 }
 
+// Функция удаления точки из вектора точек
 void removePoint(std::vector<Vector2>& points, const GAResult& data, const Rectangle& graphArea, Scaling& scale, int& currStep)
 {
     currStep--;
@@ -219,25 +236,17 @@ void removePoint(std::vector<Vector2>& points, const GAResult& data, const Recta
         points[i].x = graphArea.x + 10 + (x - scale.minX) * xScale;
         points[i].y = graphArea.y + graphArea.height - 10 - (y - scale.minY) * yScale;
     }
+
+    if (points.size() == 1)
+    {
+        points[0].x = graphArea.x + 10 + xScale;
+        points[0].y = graphArea.y + graphArea.height - 10 - yScale/2;
+    }
 }
 
 void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     // Все полученные промежуточные данные для работы
     GAResult data;
-
-    data.history = 
-    {
-        {0, { {1, 3, 2, 4}, 150, 0.00666 }, 150},
-        {1, { {1, 2, 3, 4}, 130, 0.00566 },130},
-        {2, { {3, 1, 4, 2}, 110, 0.00466 }, 110},
-        {3, { {2, 4, 1, 3}, 80, 0.00566 }, 80},
-        {4, { {2, 4, 1, 3}, 80, 0.00566 }, 79},
-        {5, { {2, 4, 1, 3}, 80, 0.00566 }, 75},
-        {6, { {2, 4, 1, 3}, 80, 0.00566 }, 73},
-        {7, { {2, 4, 1, 3}, 80, 0.00566 }, 60},
-        {8, { {2, 4, 1, 3}, 80, 0.00566 }, 51},
-    };
-
 
     DrawText("Visualization", 100, 50, 30, DARKGRAY);
     Button btnBack(10, 5, 90, 30, "Back", 22);
@@ -255,15 +264,14 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     }
 
     // Зона для графика
-    Rectangle graphArea = {400, 0, 400, 600};
+    Rectangle WholeGraphArea = {400, 0, 400, 600};
+    Rectangle graphArea = {440, 0, 360, 560};
     DrawRectangleRec(graphArea, LIGHTGRAY);
     DrawRectangleLinesEx(graphArea, 2, BLACK);
-
     
     static int currStep = 0;
     static std::vector<Vector2> points;
-    static Vector2 prevPoint;
-    static Scaling scale = {0, 0, 1000000, 0, 1, 1};
+    static Scaling scale = {0, 0, 1000000, 0};
 
     // Минимальные и максимальные значения для масштабирования графика
 
@@ -290,10 +298,60 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
         DrawLineEx(points[i-1], points[i], 5, RED);
     }
 
+    // Отрисовка точек
     for (size_t i = 0; i < points.size(); ++i) {
         DrawCircleV(points[i], 5, BLACK);
     }
 
+    // Отрисовка чисел на осях
+    size_t divisionsNumber = (5 > currStep+1) ? currStep+1 : 5;
+
+    float xInterval = graphArea.width/(divisionsNumber-1);
+    float yInterval = graphArea.height/(divisionsNumber-1);
+
+    float xStepValue = (scale.maxX - scale.minX) / (float)(divisionsNumber - 1);
+    float yStepValue = (scale.maxY - scale.minY) / (float)(divisionsNumber - 1);
+
+    float x;
+    float y;
+    float division;
+    for (size_t i = 0; i < divisionsNumber-1; ++i)
+    {
+        // Отрисовка делений по оси абсцисс
+        y = graphArea.y + graphArea.height;
+        x = graphArea.x + 10 + i * xInterval;
+        division = scale.minX + i*xStepValue;
+        DrawText(TextFormat("%.1f", division), x, y, 20, DARKGRAY);
+
+        // Отрисовка делений по оси ординат
+        x = WholeGraphArea.x;
+        y = graphArea.y + i * yInterval;
+        division = scale.maxY - i * yStepValue; 
+        DrawText(TextFormat("%d", int(division)), x, y, 20, DARKGRAY);
+    }
+
+    // Отрисовка крайних чисел, т.к. вылезают за границы рамки
+    if (divisionsNumber > 4)
+    {
+        y = graphArea.y + graphArea.height;
+        x = graphArea.x + (divisionsNumber-1) * xInterval - 40;
+        division = scale.minX + (divisionsNumber-1) * xStepValue;
+        DrawText(TextFormat("%.1f", division), x, y, 20, DARKGRAY);
+
+        // Отрисовка делений по оси ординат
+        x = WholeGraphArea.x;
+        y = graphArea.y + (divisionsNumber-1) * yInterval - 20;
+        division = scale.maxY - (divisionsNumber-1) * yStepValue; 
+        DrawText(TextFormat("%d", int(division)), x, y, 20, DARKGRAY);
+    }
+
+    if (!points.empty())
+    {
+        DrawCircleV(points.back(), 5, BLUE);
+    }
+
+
+    // Отрисовка чисел относительно масштаба
     if (btnBack.isClicked()) {
         screen = MENU;
         currStep = 0;
