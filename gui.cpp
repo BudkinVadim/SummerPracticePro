@@ -2,6 +2,8 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
+#include <string>
+#include <stdexcept>
 #include <vector>
 
 // Класс кнопки
@@ -116,6 +118,78 @@ public:
                  rect.y + rect.height / 4, rect.height / 2, BLACK);
     }
 };
+
+class Table
+{
+private:
+    std::vector<std::vector<std::string>> data;
+    int currentPage;
+    int rows;
+    int columns;
+    int visibleColumns;
+
+    int cellWidth;
+    int cellHeight;
+
+public:
+    Table(int columns, int rows, int visibleColumns, int cellWidth, int cellHeight)
+    : columns(columns), rows(rows), currentPage(0), visibleColumns(visibleColumns),
+    cellHeight(cellHeight), cellWidth(cellWidth)
+    {
+        currentPage = 0;
+        data.clear();
+    } 
+
+    int getColumns() {return columns;};
+    int getRows() {return rows;};
+
+    void addColumn(std::vector<std::string> columnData)
+    {
+        if(columnData.size() != rows) throw std::invalid_argument("Incorrect number of rows");
+        columns++;
+        data.push_back(columnData);
+    }
+
+    void setColumn(int index, std::vector<std::string> columnData)
+    {
+        if(columnData.size() != rows) throw std::invalid_argument("Incorrect number of rows");
+        data[index] = columnData;
+    }
+
+    void nextPage() 
+    {
+        if ((currentPage+1)*visibleColumns > columns) return;
+        currentPage++;
+    }
+    void prevPage()
+    {
+        if (currentPage < 1) return;
+        currentPage--;
+    }
+
+    void draw(int x, int y)
+    {
+        for (int row = 0; row < rows; row++)
+        {
+            for (int i = 0; i < visibleColumns; i++)
+            {
+                int column = currentPage*visibleColumns + i;
+
+                if (column >= columns)
+                    break;
+
+                int Xcell = x + i * cellWidth;
+                int Ycell = y + row * cellHeight;
+
+                DrawRectangleLines(Xcell, Ycell, cellWidth, cellHeight, BLACK);
+
+                DrawText(data[column][row].c_str(), Xcell + 5, Ycell + 8, 18, BLACK);
+            }
+        }
+    }
+
+};
+
 
 // Вариации экрана
 enum Screen {
@@ -244,9 +318,23 @@ void removePoint(std::vector<Vector2>& points, const GAResult& data, const Recta
     }
 }
 
+void updateTable(Table& table, GAResult& data, int& currStep)
+{
+    for(size_t i = 1; i < table.getColumns(); ++i)
+    {
+        std::vector<std::string> column;
+        column.push_back(std::to_string(i-1));
+        column.push_back(std::to_string(data.history[currStep-1].bestIndividual.chromosome[i-1]));
+        column.push_back(std::to_string((i-1)*10));
+        table.setColumn(i, column);
+    }
+}
+
 void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     // Все полученные промежуточные данные для работы
     GAResult data;
+
+    static int currStep = 0;
 
     DrawText("Visualization", 100, 50, 30, DARKGRAY);
     Button btnBack(10, 5, 90, 30, "Back", 22);
@@ -263,13 +351,61 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
         btn.draw();
     }
 
+    // Отображение лучшего решения
+    static Table table(0, 3, 5, 60, 60);
+
+    // Формирование таблицы один раз
+    if(currStep != 0 && data.bestIndividual.chromosome.size() > table.getColumns())
+    {
+        std::vector<std::string> firstColumn;
+        firstColumn.push_back("Workr");
+        firstColumn.push_back("Work");
+        firstColumn.push_back("Cost");
+        table.addColumn(firstColumn);
+        for (size_t i = 0; i < data.bestIndividual.chromosome.size(); ++i)
+        {
+            std::vector<std::string> column;
+            column.push_back(std::to_string(i));
+            column.push_back(std::to_string(data.history[currStep-1].bestIndividual.chromosome[i]));
+            column.push_back(std::to_string(i*10));
+            table.addColumn(column);
+            column.clear();
+        }
+    }
+    DrawText("Current best individual:", 40, 125, 25, DARKGRAY);
+    table.draw(40, 150);
+
+    Button btnPrevPage(10, 220, 30, 30, "<", 22);
+    Button btnNextPage(340, 220, 30, 30, ">", 22);
+
+    btnPrevPage.draw();
+    btnNextPage.draw();
+
+    if(btnNextPage.isClicked())
+    {
+        table.nextPage();
+    }
+
+    if(btnPrevPage.isClicked())
+    {
+        table.prevPage();
+    }
+
+    // Характеристики промежуточного решения
+    if(currStep > 0)
+    {
+        Rectangle paramsArea = {40, 330, 300, 200};
+        DrawText(TextFormat("Current step: %d", currStep), paramsArea.x + 10, paramsArea.y + 10, 25, DARKGRAY);
+        DrawText(TextFormat("Current best cost: %d", data.history[currStep-1].bestCost), paramsArea.x + 10, paramsArea.y + 35, 25, DARKGRAY);
+    }
+
+
     // Зона для графика
     Rectangle WholeGraphArea = {400, 0, 400, 600};
     Rectangle graphArea = {440, 0, 360, 560};
     DrawRectangleRec(graphArea, LIGHTGRAY);
     DrawRectangleLinesEx(graphArea, 2, BLACK);
     
-    static int currStep = 0;
     static std::vector<Vector2> points;
     static Scaling scale = {0, 0, 1000000, 0};
 
@@ -278,6 +414,7 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     if (btnNextStep.isClicked() && currStep < data.history.size()) 
     {
         addPoint(points, data, graphArea, scale, currStep);
+        updateTable(table, data, currStep);
     }
 
     if (btnSkipSteps.isClicked() && currStep < data.history.size()) 
@@ -286,11 +423,13 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
         {
             addPoint(points, data, graphArea, scale, currStep);
         }
+        updateTable(table, data, currStep);
     }
 
     if (btnPrevStep.isClicked() && currStep > 1)
     {
         removePoint(points, data, graphArea, scale, currStep);
+        updateTable(table, data, currStep);
     }
 
     // Отрисовка отрезков графика
@@ -301,6 +440,11 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     // Отрисовка точек
     for (size_t i = 0; i < points.size(); ++i) {
         DrawCircleV(points[i], 5, BLACK);
+    }
+
+    if (!points.empty())
+    {
+        DrawCircleV(points.back(), 5, BLUE);
     }
 
     // Отрисовка чисел на осях
@@ -317,6 +461,7 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     float y;
     float division;
 
+    // Обработка случая с одной точкой
     if (currStep == 1)
     {
         y = graphArea.y + graphArea.height;
@@ -331,6 +476,7 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
         DrawText(TextFormat("%d", int(division)), x, y, 20, DARKGRAY);
     }
 
+    // Общий случай
     for (size_t i = 0; i < divisionsNumber - 1; ++i)
     {
         // Отрисовка делений по оси абсцисс
@@ -360,18 +506,12 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
         division = scale.maxY - (divisionsNumber-1) * yStepValue; 
         DrawText(TextFormat("%d", int(division)), x, y, 20, DARKGRAY);
     }
-
-    if (!points.empty())
-    {
-        DrawCircleV(points.back(), 5, BLUE);
-    }
-
-
-    // Отрисовка чисел относительно масштаба
+    
     if (btnBack.isClicked()) {
         screen = MENU;
         currStep = 0;
         points.clear();
+        table = Table(0, 3, 5, 60, 60);
     }
 }
 
