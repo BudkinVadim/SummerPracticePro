@@ -304,7 +304,8 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     }
 
     // Отрисовка чисел на осях
-    size_t divisionsNumber = (5 > currStep+1) ? currStep+1 : 5;
+    size_t divisionsNumber = (5 > currStep) ? currStep : 5;
+    divisionsNumber = (divisionsNumber < 1) ? 1 : divisionsNumber;
 
     float xInterval = graphArea.width/(divisionsNumber-1);
     float yInterval = graphArea.height/(divisionsNumber-1);
@@ -315,28 +316,43 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     float x;
     float y;
     float division;
-    for (size_t i = 0; i < divisionsNumber-1; ++i)
+
+    if (currStep == 1)
     {
-        // Отрисовка делений по оси абсцисс
         y = graphArea.y + graphArea.height;
-        x = graphArea.x + 10 + i * xInterval;
-        division = scale.minX + i*xStepValue;
-        DrawText(TextFormat("%.1f", division), x, y, 20, DARKGRAY);
+        division = 0;
+        x = points[division].x;
+        DrawText(TextFormat("%d", division), x, y, 20, DARKGRAY);
 
         // Отрисовка делений по оси ординат
         x = WholeGraphArea.x;
-        y = graphArea.y + i * yInterval;
+        y = points[0].y;
+        division = scale.maxY; 
+        DrawText(TextFormat("%d", int(division)), x, y, 20, DARKGRAY);
+    }
+
+    for (size_t i = 0; i < divisionsNumber - 1; ++i)
+    {
+        // Отрисовка делений по оси абсцисс
+        y = graphArea.y + graphArea.height;
+        division = std::floor(scale.minX + i*xStepValue);
+        x = points[division].x;
+        DrawText(TextFormat("%d", division), x, y, 20, DARKGRAY);
+
+        // Отрисовка делений по оси ординат
+        x = WholeGraphArea.x;
+        y = graphArea.y + i * yInterval + 10;
         division = scale.maxY - i * yStepValue; 
         DrawText(TextFormat("%d", int(division)), x, y, 20, DARKGRAY);
     }
 
     // Отрисовка крайних чисел, т.к. вылезают за границы рамки
-    if (divisionsNumber > 4)
+    if (divisionsNumber > 1)
     {
         y = graphArea.y + graphArea.height;
-        x = graphArea.x + (divisionsNumber-1) * xInterval - 40;
-        division = scale.minX + (divisionsNumber-1) * xStepValue;
-        DrawText(TextFormat("%.1f", division), x, y, 20, DARKGRAY);
+        division = std::floor(scale.minX + (divisionsNumber-1)*xStepValue - 1);
+        x = points[division].x;
+        DrawText(TextFormat("%d", division), x, y, 20, DARKGRAY);
 
         // Отрисовка делений по оси ординат
         x = WholeGraphArea.x;
