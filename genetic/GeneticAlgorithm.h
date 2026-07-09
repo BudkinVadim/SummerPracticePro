@@ -3,6 +3,23 @@
 #include <vector>
 #include <random>
 
+enum CrossoverType {
+    OrderedCrossover,
+    PositionalCrossing
+};
+
+//тип отбора
+enum SelectionType {
+    TournamentSelection,
+    RouletteSelection
+};
+
+//тип мутации
+enum MutationType {
+    SwapMutation,
+    InversionMutation
+};
+
 //один вариант решения
 struct Individual {
     std::vector<int> chromosome; //назначение работ кандидатам
@@ -17,6 +34,12 @@ struct GASettings {
     double mutationProbability = 0.1;
     int tournamentSize = 3;
     int eliteCount = 2;
+    int maxGenerationsWithoutImprovement = 0;
+    int roulettePointerCount = 0;
+
+    SelectionType selectionType = TournamentSelection;
+    MutationType mutationType = SwapMutation;
+    CrossoverType crossoverType = OrderedCrossover;
 };
 
 //инфа об поколении
@@ -67,12 +90,29 @@ private:
     //турнирный отбор
     Individual tournamentSelection(const std::vector<Individual>& population, int tournamentSize);
 
+    //отбор стохастической рулеткой
+    std::vector<Individual> stochasticRouletteSelection(const std::vector<Individual>& population,int pointerCount);
+
+    //общий выбор родителя по настройкам
+    Individual selectParent(const std::vector<Individual>& population, const GASettings& settings);
 
     //мутация(будет перестановка случайных работ)
     void mutateSwap(Individual& individual);
 
+    //мутация(разворачивание подмассива внутри хромосомы)
+    void mutateInversion(Individual& individual);
+
+    //общий выбор мутациии по настройкам
+    void mutateIndividual(Individual& individual, const GASettings& settings);
+
     //упорядоченное скрещивание
     Individual orderedCrossover(const Individual& parent1, const Individual& parent2);
+
+    //позиционное скрещивание
+    Individual positionCrossover(const Individual& parent1, const Individual& parent2);
+    
+    //общий выбор скрещивания по настройкам
+    Individual crossoverIndividuals(const Individual& parent1, const Individual& parent2, const GASettings& settings);
 
     //создание нового поколения, исходя из старого
     std::vector<Individual> createNextGeneration(std::vector<Individual>& population, const std::vector<std::vector<int>>& costMatrix,
