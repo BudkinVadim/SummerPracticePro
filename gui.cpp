@@ -164,8 +164,7 @@ void menu_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     }
 }
 
-
-void addLine(std::vector<ScreenLine>& lines, const GAResult& data, const Rectangle& graphArea, Vector2& prevPoint, int& currStep)
+void addPoint(std::vector<Vector2>& points, const GAResult& data, const Rectangle& graphArea, int& currStep)
 {
     int minX = data.history.front().generationNumber;
     int maxX = data.history.back().generationNumber;
@@ -183,12 +182,7 @@ void addLine(std::vector<ScreenLine>& lines, const GAResult& data, const Rectang
     float yScaled = graphArea.y + graphArea.height - 10 - (y - minY) * yScale;
 
     Vector2 newPoint = {xScaled, yScaled};
-    if(lines.empty())
-    {
-        prevPoint = newPoint;
-    }
-    lines.push_back({prevPoint, newPoint}); 
-    prevPoint = newPoint;
+    points.push_back(newPoint); 
     currStep++;
 }
 
@@ -232,7 +226,7 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
 
     
     static int currStep = 0;
-    static std::vector<ScreenLine> lines;
+    static std::vector<Vector2> points;
     static Vector2 prevPoint;
 
     // Минимальные и максимальные значения для масштабирования графика
@@ -243,40 +237,36 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
 
     if (btnNextStep.isClicked() && currStep < data.history.size()) 
     {
-        addLine(lines, data, graphArea, prevPoint, currStep);
+        addPoint(points, data, graphArea, currStep);
     }
 
     if (btnSkipSteps.isClicked() && currStep < data.history.size()) 
     {
         for(size_t i = currStep; i < data.history.size(); ++i)
         {
-            addLine(lines, data, graphArea, prevPoint, currStep);
+            addPoint(points, data, graphArea, currStep);
         }
     }
 
     if (btnPrevStep.isClicked() && currStep > 1)
     {
-        prevPoint = lines.back().start;
-        lines.pop_back();
+        points.pop_back();
         currStep--;
     }
 
     // Отрисовка отрезков графика
-    for (const auto& line : lines) {
-        DrawLineEx(line.start, line.end, 5, RED);
+    for (size_t i = 1; i < points.size(); ++i) {
+        DrawLineEx(points[i-1], points[i], 5, RED);
     }
 
-    if (!lines.empty())
-    {
-        DrawCircleV(lines.back().end, 5, GREEN);
+    for (size_t i = 0; i < points.size(); ++i) {
+        DrawCircleV(points[i], 5, GREEN);
     }
 
-    // Отрисовка данных текущего решения
-    
     if (btnBack.isClicked()) {
         screen = MENU;
         currStep = 0;
-        lines.clear();
+        points.clear();
     }
 }
 
