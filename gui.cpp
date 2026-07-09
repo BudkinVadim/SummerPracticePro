@@ -164,22 +164,119 @@ void menu_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     }
 }
 
+
+void addLine(std::vector<ScreenLine>& lines, const GAResult& data, const Rectangle& graphArea, Vector2& prevPoint, int& currStep)
+{
+    int minX = data.history.front().generationNumber;
+    int maxX = data.history.back().generationNumber;
+    int minY = data.history.back().bestCost;
+    int maxY = data.history.front().bestCost;
+
+    int x = data.history[currStep].generationNumber;
+    int y = data.history[currStep].bestCost;
+
+    // Рассчет координат точки в пределах зоны графика
+    float xScale = (graphArea.width - 20) / (float)(maxX - minX + 1);
+    float yScale = (graphArea.height - 20) / (float)(maxY - minY + 1);
+
+    float xScaled = graphArea.x + 10 + (x - minX) * xScale;
+    float yScaled = graphArea.y + graphArea.height - 10 - (y - minY) * yScale;
+
+    Vector2 newPoint = {xScaled, yScaled};
+    if(lines.empty())
+    {
+        prevPoint = newPoint;
+    }
+    lines.push_back({prevPoint, newPoint}); 
+    prevPoint = newPoint;
+    currStep++;
+}
+
 void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
+    // Все полученные промежуточные данные для работы
+    GAResult data;
+
+    data.history = 
+    {
+        {0, { {1, 3, 2, 4}, 150, 0.00666 }, 150},
+        {1, { {1, 2, 3, 4}, 130, 0.00566 },130},
+        {2, { {3, 1, 4, 2}, 110, 0.00466 }, 110},
+        {3, { {2, 4, 1, 3}, 80, 0.00566 }, 80},
+        {4, { {2, 4, 1, 3}, 80, 0.00566 }, 79},
+        {5, { {2, 4, 1, 3}, 80, 0.00566 }, 75},
+        {6, { {2, 4, 1, 3}, 80, 0.00566 }, 73},
+        {7, { {2, 4, 1, 3}, 80, 0.00566 }, 60},
+        {8, { {2, 4, 1, 3}, 80, 0.00566 }, 51},
+    };
+
+
     DrawText("Visualization", 100, 50, 30, DARKGRAY);
     Button btnBack(10, 5, 90, 30, "Back", 22);
+    Button btnPrevStep(100, 500, 90, 30, "<", 22);
+    Button btnNextStep(200, 500, 90, 30, ">", 22);
+    Button btnSkipSteps(300, 500, 90, 30, ">>", 22);
 
     for (NumberBox &nb: nbs) {
         nb.update();
         nb.draw();
     }
 
-    for (auto btn: {btnBack}) {
+    for (auto btn: {btnBack, btnNextStep, btnPrevStep, btnSkipSteps}) {
         btn.draw();
     }
 
+    // Зона для графика
+    Rectangle graphArea = {400, 0, 400, 600};
+    DrawRectangleRec(graphArea, LIGHTGRAY);
+    DrawRectangleLinesEx(graphArea, 2, BLACK);
+
+    
+    static int currStep = 0;
+    static std::vector<ScreenLine> lines;
+    static Vector2 prevPoint;
+
+    // Минимальные и максимальные значения для масштабирования графика
+    int minX = data.history.front().generationNumber;
+    int maxX = data.history.back().generationNumber;
+    int minY = data.history.back().bestCost;
+    int maxY = data.history.front().bestCost;
+
+    if (btnNextStep.isClicked() && currStep < data.history.size()) 
+    {
+        addLine(lines, data, graphArea, prevPoint, currStep);
+    }
+
+    if (btnSkipSteps.isClicked() && currStep < data.history.size()) 
+    {
+        for(size_t i = currStep; i < data.history.size(); ++i)
+        {
+            addLine(lines, data, graphArea, prevPoint, currStep);
+        }
+    }
+
+    if (btnPrevStep.isClicked() && currStep > 1)
+    {
+        prevPoint = lines.back().start;
+        lines.pop_back();
+        currStep--;
+    }
+
+    // Отрисовка отрезков графика
+    for (const auto& line : lines) {
+        DrawLineEx(line.start, line.end, 5, RED);
+    }
+
+    if (!lines.empty())
+    {
+        DrawCircleV(lines.back().end, 5, GREEN);
+    }
+
+    // Отрисовка данных текущего решения
+    
     if (btnBack.isClicked()) {
-        // Останавливаем работу алгоритма
         screen = MENU;
+        currStep = 0;
+        lines.clear();
     }
 }
 
