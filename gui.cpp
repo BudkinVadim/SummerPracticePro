@@ -1,5 +1,6 @@
 #include "lib/raylib.h"
 #include <iostream>
+#include <algorithm>
 #include <vector>
 
 // Класс кнопки
@@ -164,26 +165,60 @@ void menu_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     }
 }
 
-void addPoint(std::vector<Vector2>& points, const GAResult& data, const Rectangle& graphArea, int& currStep)
+void addPoint(std::vector<Vector2>& points, const GAResult& data, const Rectangle& graphArea, Scaling& scale, int& currStep)
 {
-    int minX = data.history.front().generationNumber;
-    int maxX = data.history.back().generationNumber;
-    int minY = data.history.back().bestCost;
-    int maxY = data.history.front().bestCost;
 
-    int x = data.history[currStep].generationNumber;
+    int x = data.history[currStep].generationNumber + 1;
     int y = data.history[currStep].bestCost;
 
-    // Рассчет координат точки в пределах зоны графика
-    float xScale = (graphArea.width - 20) / (float)(maxX - minX + 1);
-    float yScale = (graphArea.height - 20) / (float)(maxY - minY + 1);
 
-    float xScaled = graphArea.x + 10 + (x - minX) * xScale;
-    float yScaled = graphArea.y + graphArea.height - 10 - (y - minY) * yScale;
+    scale.maxX = currStep+1;
+    scale.minY = std::min(scale.minY, y);
+    scale.maxY = std::max(scale.maxY, y);
 
-    Vector2 newPoint = {xScaled, yScaled};
-    points.push_back(newPoint); 
+    float xScale = (graphArea.width - 20) / (float)(scale.maxX - scale.minX + 1);
+    float yScale = (graphArea.height - 20) / (float)(scale.maxY - scale.minY + 1);
+
+    points.push_back({0,0});
+
+    // Перерасчет расположения точек
+    for(size_t i = 0; i < points.size(); ++i)
+    {
+        x = data.history[i].generationNumber + 1;
+        y = data.history[i].bestCost;
+
+        points[i].x = graphArea.x + 10 + (x - scale.minX) * xScale;
+        points[i].y = graphArea.y + graphArea.height - 10 - (y - scale.minY) * yScale;
+    }
+
     currStep++;
+}
+
+void removePoint(std::vector<Vector2>& points, const GAResult& data, const Rectangle& graphArea, Scaling& scale, int& currStep)
+{
+    currStep--;
+    if(data.history[currStep].bestCost == scale.minY) scale.minY = 10000;
+    if(data.history[currStep].bestCost == scale.maxY) scale.maxY = 0;
+
+    points.pop_back();
+    
+
+    scale.maxX = currStep;
+    scale.minY = std::min(scale.minY, data.history[currStep-1].bestCost);
+    scale.maxY = std::max(scale.maxY, data.history[currStep-1].bestCost);
+
+    float xScale = (graphArea.width - 20) / (float)(scale.maxX - scale.minX + 1);
+    float yScale = (graphArea.height - 20) / (float)(scale.maxY - scale.minY + 1);
+
+    // Перерасчет расположения точек
+    for(size_t i = 0; i < points.size(); ++i)
+    {
+        int x = data.history[i].generationNumber + 1;
+        int y = data.history[i].bestCost;
+
+        points[i].x = graphArea.x + 10 + (x - scale.minX) * xScale;
+        points[i].y = graphArea.y + graphArea.height - 10 - (y - scale.minY) * yScale;
+    }
 }
 
 void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
@@ -228,30 +263,26 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     static int currStep = 0;
     static std::vector<Vector2> points;
     static Vector2 prevPoint;
+    static Scaling scale = {0, 0, 1000000, 0, 1, 1};
 
     // Минимальные и максимальные значения для масштабирования графика
-    int minX = data.history.front().generationNumber;
-    int maxX = data.history.back().generationNumber;
-    int minY = data.history.back().bestCost;
-    int maxY = data.history.front().bestCost;
 
     if (btnNextStep.isClicked() && currStep < data.history.size()) 
     {
-        addPoint(points, data, graphArea, currStep);
+        addPoint(points, data, graphArea, scale, currStep);
     }
 
     if (btnSkipSteps.isClicked() && currStep < data.history.size()) 
     {
         for(size_t i = currStep; i < data.history.size(); ++i)
         {
-            addPoint(points, data, graphArea, currStep);
+            addPoint(points, data, graphArea, scale, currStep);
         }
     }
 
     if (btnPrevStep.isClicked() && currStep > 1)
     {
-        points.pop_back();
-        currStep--;
+        removePoint(points, data, graphArea, scale, currStep);
     }
 
     // Отрисовка отрезков графика
@@ -260,7 +291,7 @@ void visualization_screen(Screen &screen, std::vector<NumberBox> &nbs) {
     }
 
     for (size_t i = 0; i < points.size(); ++i) {
-        DrawCircleV(points[i], 5, GREEN);
+        DrawCircleV(points[i], 5, BLACK);
     }
 
     if (btnBack.isClicked()) {
