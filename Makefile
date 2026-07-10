@@ -1,5 +1,5 @@
 all:
-	g++ gui.cpp -o SP_work ./lib/libraylib.a -lX11
+	g++ main.cpp -o SP_work ./lib/libraylib.a ./lib/tinyfiledialogs.cpp -lX11
 
 clean:
 	rm SP_work
