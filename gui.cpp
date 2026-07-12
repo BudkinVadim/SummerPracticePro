@@ -146,18 +146,23 @@ private:
     int currentPage;
     int rows;
     int columns;
-    int visibleColumns;
+    int visibleRows;
 
     int cellWidth;
     int cellHeight;
 
 public:
-    Table(int columns, int rows, int visibleColumns, int cellWidth, int cellHeight)
-    : columns(columns), rows(rows), currentPage(0), visibleColumns(visibleColumns),
+    Table(int columns, int rows, int visibleRows, int cellWidth, int cellHeight)
+    : columns(columns), rows(rows), currentPage(0), visibleRows(visibleRows),
     cellHeight(cellHeight), cellWidth(cellWidth)
     {
         currentPage = 0;
         data.clear();
+        for (size_t i = 0; i < rows; ++i)
+        {
+            data[i] = std::vector<std::string>(columns);
+        }
+        
     } 
 
     int getColumns() {return columns;};
@@ -165,20 +170,40 @@ public:
 
     void addColumn(std::vector<std::string> columnData)
     {
-        if(columnData.size() != rows) throw std::invalid_argument("Incorrect number of rows");
+        if(columnData.size() != rows) throw std::invalid_argument("Incorrect number of columns");
         columns++;
-        data.push_back(columnData);
+        for (size_t i = 0; i < rows; ++i)
+        {
+            data[i].push_back(columnData[i]);
+        }
+    }
+
+    void addRow(std::vector<std::string> rowData)
+    {
+        if(rowData.size() != columns) throw std::invalid_argument("Incorrect number of rows");
+        rows++;
+        data.push_back(rowData);
     }
 
     void setColumn(int index, std::vector<std::string> columnData)
     {
-        if(columnData.size() != rows) throw std::invalid_argument("Incorrect number of rows");
-        data[index] = columnData;
+        if(columnData.size() != rows) throw std::invalid_argument("Incorrect number of columns");
+        columns++;
+        for (size_t i = 0; i < columns; ++i)
+        {
+            data[i][index] = columnData[i];
+        }
+    }
+
+    void setRow(int index, std::vector<std::string> rowData)
+    {
+        if(rowData.size() != columns) throw std::invalid_argument("Incorrect number of rows");
+        data[index] = rowData;
     }
 
     void nextPage() 
     {
-        if ((currentPage+1)*visibleColumns > columns) return;
+        if ((currentPage+1)*visibleRows > rows) return;
         currentPage++;
     }
     void prevPage()
@@ -189,21 +214,22 @@ public:
 
     void draw(int x, int y)
     {
-        for (int row = 0; row < rows; row++)
+        for (int i = 0; i < visibleRows; ++i)
         {
-            for (int i = 0; i < visibleColumns; i++)
+            for (int j = 0; j < columns; ++j)
             {
-                int column = currentPage*visibleColumns + i;
+                int row = currentPage*visibleRows + i;
 
-                if (column >= columns)
+                if (row >= rows)
                     break;
 
-                int Xcell = x + i * cellWidth;
-                int Ycell = y + row * cellHeight;
+                int Xcell = x + j * cellWidth;
+                int Ycell = y + i * cellHeight;
 
                 DrawRectangleLines(Xcell, Ycell, cellWidth, cellHeight, BLACK);
 
-                DrawText(data[column][row].c_str(), Xcell + 5, Ycell + 8, 18, BLACK);
+                // Текст внутри ячейки
+                DrawText(data[row][j].c_str(), Xcell + 5, Ycell + 8, 18, BLACK);
             }
         }
     }
@@ -427,28 +453,29 @@ public:
         }
     }
 
-    void updateTable(Table& table, int& currStep)
+    void updateTable(Table& table, int& currStep, int& currIndividual)
     {
-        for(size_t i = 1; i < table.getColumns(); ++i)
+        for(size_t i = 1; i < table.getRows(); ++i)
         {
-            std::vector<std::string> column;
+            std::vector<std::string> row;
             int workId = result.history[currStep-1].bestIndividual.chromosome[i-1];
-            column.push_back(std::to_string(i-1));
-            column.push_back(std::to_string(workId));
-            column.push_back(std::to_string(costMatrix[i-1][workId])) ;
-            table.setColumn(i, column);
+            row.push_back(std::to_string(i-1));
+            row.push_back(std::to_string(workId));
+            row.push_back(std::to_string(costMatrix[i-1][workId]));
+            table.setRow(i, row);
         }
     }
 
     void visualization_screen(std::vector<NumberBox> &nbs) {
         // Получение данных для визуализации
         static int currStep = 0;
+        static int currIndividual = 0;
 
-        DrawText("Visualization", 100, 50, 30, DARKGRAY);
+        DrawText("Visualization", 130, 5, 30, DARKGRAY);
         Button btnBack(10, 5, 90, 30, "Back", 22);
-        Button btnPrevStep(100, 500, 90, 30, "<", 22);
-        Button btnNextStep(200, 500, 90, 30, ">", 22);
-        Button btnSkipSteps(300, 500, 90, 30, ">>", 22);
+        Button btnPrevStep(100, 540, 90, 30, "<", 22);
+        Button btnNextStep(200, 540, 90, 30, ">", 22);
+        Button btnSkipSteps(300, 540, 90, 30, ">>", 22);
 
         for (NumberBox &nb: nbs) {
             nb.update();
@@ -460,35 +487,42 @@ public:
         }
 
         // Отображение лучшего решения
-        static Table table(0, 3, 5, 60, 60);
+        static Table table(3, 0, 7, 60, 60);
 
         // Формирование таблицы один раз
-        if(currStep != 0 && result.bestIndividual.chromosome.size() > table.getColumns())
+        if(currStep != 0 && result.bestIndividual.chromosome.size() > table.getRows())
         {
-            std::vector<std::string> firstColumn;
-            firstColumn.push_back("Workr");
-            firstColumn.push_back("Work");
-            firstColumn.push_back("Cost");
-            table.addColumn(firstColumn);
+            std::vector<std::string> firstRow;
+            firstRow.push_back("Workr");
+            firstRow.push_back("Work");
+            firstRow.push_back("Cost");
+            table.addRow(firstRow);
+
             for (size_t i = 0; i < result.bestIndividual.chromosome.size(); ++i)
             {
-                std::vector<std::string> column;
+                std::vector<std::string> row;
                 int workId = result.history[currStep-1].bestIndividual.chromosome[i];
-                column.push_back(std::to_string(i));
-                column.push_back(std::to_string(workId));
-                column.push_back(std::to_string(costMatrix[i][workId]));
-                table.addColumn(column);
-                column.clear();
+                row.push_back(std::to_string(i));
+                row.push_back(std::to_string(workId));
+                row.push_back(std::to_string(costMatrix[i][workId]));
+                table.addRow(row);
+                row.clear();
             }
         }
-        DrawText("Current best individual:", 40, 125, 25, DARKGRAY);
-        table.draw(40, 150);
+        table.draw(40, 100);
 
-        Button btnPrevPage(10, 220, 30, 30, "<", 22);
-        Button btnNextPage(340, 220, 30, 30, ">", 22);
+        Button btnPrevPage(220, 100, 30, 30, "/\\", 20);
+        Button btnNextPage(220, 135, 30, 30, "\\/", 20);
+        Button btnNextIndividual(220, 170, 30, 30, ">", 20);
+        Button btnPrevIndividual(220, 205, 30, 30, "<", 20);
 
-        btnPrevPage.draw();
-        btnNextPage.draw();
+        if (currStep > 0)
+        {
+            btnPrevPage.draw();
+            btnNextPage.draw();
+            btnPrevIndividual.draw();
+            btnNextIndividual.draw();
+        }
 
         if(btnNextPage.isClicked())
         {
@@ -500,12 +534,31 @@ public:
             table.prevPage();
         }
 
+        if(btnNextIndividual.isClicked())
+        {
+            if (currIndividual + 1 < 10)
+            {
+                currIndividual++;
+                updateTable(table, currStep, currIndividual);
+            }
+        }
+
+        if(btnPrevIndividual.isClicked())
+        {
+            if (currIndividual - 1 >= 0)
+            {
+                currIndividual--;
+                updateTable(table, currStep, currIndividual);
+            }
+        }
+
         // Характеристики промежуточного решения
         if(currStep > 0)
         {
-            Rectangle paramsArea = {40, 330, 300, 200};
-            DrawText(TextFormat("Current step: %d", currStep), paramsArea.x + 10, paramsArea.y + 10, 25, DARKGRAY);
-            DrawText(TextFormat("Current best cost: %d", result.history[currStep-1].bestCost), paramsArea.x + 10, paramsArea.y + 35, 25, DARKGRAY);
+            DrawText("Current best individual:", 40, 75, 25, DARKGRAY);
+            Rectangle paramsArea = {220, 240, 300, 200};
+            DrawText(TextFormat("Curr step: %d", currStep), paramsArea.x + 5, paramsArea.y + 5, 22, DARKGRAY);
+            DrawText(TextFormat("Current best\ncost: %d", result.history[currStep-1].bestCost), paramsArea.x + 5, paramsArea.y + 35, 22, DARKGRAY);
         }
 
 
@@ -514,6 +567,7 @@ public:
         Rectangle graphArea = {440, 0, 360, 560};
         DrawRectangleRec(graphArea, LIGHTGRAY);
         DrawRectangleLinesEx(graphArea, 2, BLACK);
+        DrawRectangleLinesEx(WholeGraphArea, 2, BLACK);
         
         static std::vector<Vector2> points;
         static Scaling scale = {0, 0, 1000000, 0};
@@ -523,7 +577,7 @@ public:
         if (btnNextStep.isClicked() && currStep < result.history.size()) 
         {
             addPoint(points, graphArea, scale, currStep);
-            updateTable(table, currStep);
+            updateTable(table, currStep, currIndividual);
         }
 
         if (btnSkipSteps.isClicked() && currStep < result.history.size()) 
@@ -532,13 +586,13 @@ public:
             {
                 addPoint(points, graphArea, scale, currStep);
             }
-            updateTable(table, currStep);
+            updateTable(table, currStep, currIndividual);
         }
 
         if (btnPrevStep.isClicked() && currStep > 1)
         {
             removePoint(points, graphArea, scale, currStep);
-            updateTable(table, currStep);
+            updateTable(table, currStep, currIndividual);
         }
 
         // Отрисовка отрезков графика
@@ -571,6 +625,8 @@ public:
         float division;
 
         // Обработка случая с одной точкой
+        // Отступ оси ординат от общей зоны графика
+        int yAsixPadding = 5;
         if (currStep == 1)
         {
             y = graphArea.y + graphArea.height;
@@ -579,7 +635,7 @@ public:
             DrawText(TextFormat("%d", division), x, y, 20, DARKGRAY);
 
             // Отрисовка делений по оси ординат
-            x = WholeGraphArea.x;
+            x = WholeGraphArea.x + yAsixPadding;
             y = points[0].y;
             division = scale.maxY; 
             DrawText(TextFormat("%d", int(division)), x, y, 20, DARKGRAY);
@@ -595,7 +651,7 @@ public:
             DrawText(TextFormat("%d", division), x, y, 20, DARKGRAY);
 
             // Отрисовка делений по оси ординат
-            x = WholeGraphArea.x;
+            x = WholeGraphArea.x + yAsixPadding;
             y = graphArea.y + i * yInterval + 10;
             division = scale.maxY - i * yStepValue; 
             DrawText(TextFormat("%d", int(division)), x, y, 20, DARKGRAY);
@@ -610,7 +666,7 @@ public:
             DrawText(TextFormat("%d", division), x, y, 20, DARKGRAY);
 
             // Отрисовка делений по оси ординат
-            x = WholeGraphArea.x;
+            x = WholeGraphArea.x + yAsixPadding;
             y = graphArea.y + (divisionsNumber-1) * yInterval - 20;
             division = scale.maxY - (divisionsNumber-1) * yStepValue; 
             DrawText(TextFormat("%d", int(division)), x, y, 20, DARKGRAY);
