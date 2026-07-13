@@ -42,16 +42,32 @@ struct GASettings {
     CrossoverType crossoverType = OrderedCrossover;
 };
 
-//инфа об поколении
-struct GenerationInfo {
+//инфа об одном поколении
+struct GenerationInfo{
+    //номер поколения
     int generationNumber = 0;
+
+    //все решения текущего поколения
+    std::vector<Individual> population;
+
+    //количество особей в поколении
+    int individualCount = 0;
+
+    //лучшее решение в поколении
     Individual bestIndividual;
+
+    //стоимость лучшей особи поколения
     int bestCost = 0;
 };
 
-struct GAResult {
+struct GAResult{
+    //лучшая особь среди всех поколений
     Individual bestIndividual;
+
     std::vector<GenerationInfo> history;
+
+    //получение поколения по его индексу
+    const GenerationInfo& getGeneration(int index) const;
 };
 
 class GeneticAlgorithm{
@@ -117,4 +133,6 @@ private:
     //создание нового поколения, исходя из старого
     std::vector<Individual> createNextGeneration(std::vector<Individual>& population, const std::vector<std::vector<int>>& costMatrix,
         const GASettings& settings);
+
+    void validateSettings(const GASettings& settings);
 };
