@@ -381,6 +381,8 @@ public:
         int maxX;
         int minY;
         int maxY;
+
+        Scaling() : minX(0), maxX(0), minY(10000000), maxY(0) {}
     };
 
     // Функция добавления точки из вектора точек
@@ -463,6 +465,7 @@ public:
             row.push_back(std::to_string(workId));
             row.push_back(std::to_string(costMatrix[i-1][workId]));
             table.setRow(i, row);
+            row.clear();
         }
     }
 
@@ -476,13 +479,14 @@ public:
         Button btnPrevStep(100, 540, 90, 30, "<", 22);
         Button btnNextStep(200, 540, 90, 30, ">", 22);
         Button btnSkipSteps(300, 540, 90, 30, ">>", 22);
+        Button btnReturnToStart(0, 540, 90, 30, "<<", 22);
 
         for (NumberBox &nb: nbs) {
             nb.update();
             nb.draw();
         }
 
-        for (auto btn: {btnBack, btnNextStep, btnPrevStep, btnSkipSteps}) {
+        for (auto btn: {btnBack, btnNextStep, btnPrevStep, btnSkipSteps, btnReturnToStart}) {
             btn.draw();
         }
 
@@ -570,7 +574,7 @@ public:
         DrawRectangleLinesEx(WholeGraphArea, 2, BLACK);
         
         static std::vector<Vector2> points;
-        static Scaling scale = {0, 0, 1000000, 0};
+        static Scaling scale;
 
         // Минимальные и максимальные значения для масштабирования графика
 
@@ -592,6 +596,15 @@ public:
         if (btnPrevStep.isClicked() && currStep > 1)
         {
             removePoint(points, graphArea, scale, currStep);
+            updateTable(table, currStep, currIndividual);
+        }
+
+        if (btnReturnToStart.isClicked() && currStep > 1) 
+        {
+            currStep = 0;
+            scale = Scaling();
+            points.clear();
+            addPoint(points, graphArea, scale, currStep);
             updateTable(table, currStep, currIndividual);
         }
 
@@ -676,7 +689,7 @@ public:
             screen = MENU;
             currStep = 0;
             points.clear();
-            table = Table(0, 3, 5, 60, 60);
+            table = Table(3, 0, 7, 60, 60);
         }
     }
 
@@ -749,7 +762,7 @@ public:
             {
                 for (size_t j = 0; j < mtxSize; ++j)
                 {
-                    costMatrix[i][j] = nbs[i*mtxSize + j].number;
+                    costMatrix[i][j] = nbs[i*nbs.back().maxN + j].number;
                 }
             }
             getGAResult();
