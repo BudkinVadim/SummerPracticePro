@@ -4,6 +4,7 @@
 
 #include "genetic/GeneticAlgorithm.h"
 #include "data/MatrixReader.h"
+#include "data/RandomMatrixGenerator.h"
 
 int main() {
     try {
@@ -16,7 +17,7 @@ int main() {
         settings.mutationProbability = 0.1;
         settings.tournamentSize = 3;
         settings.eliteCount = 2;
-        settings.maxGenerationsWithoutImprovement = 50;
+        settings.maxGenerationsWithoutImprovement = 1;
         settings.roulettePointerCount = 0;
         settings.selectionType = RouletteSelection;
         settings.mutationType = SwapMutation;

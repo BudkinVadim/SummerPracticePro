@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <numeric>
-#include <limits>
+#include <stdexcept>
 
 //генерация целого
 int GeneticAlgorithm::randomInt(int left, int right) {
@@ -14,6 +14,15 @@ int GeneticAlgorithm::randomInt(int left, int right) {
 double GeneticAlgorithm::randomDouble(double left, double right){
     std::uniform_real_distribution<double> dist(left, right);
     return dist(rng);
+}
+
+//получение поколения по его индексу
+const GenerationInfo& GAResult::getGeneration(int index) const{
+    if (index < 0 || index >= history.size()){
+        throw std::out_of_range("Generation index is out of range");
+    }
+
+    return history[index];
 }
 
 //стоимость решения
@@ -340,6 +349,7 @@ std::vector<Individual> GeneticAlgorithm::createNextGeneration(std::vector<Indiv
 
 //главная функция
 GAResult GeneticAlgorithm::run(const std::vector<std::vector<int>>& costMatrix,const GASettings& settings) {
+    validateSettings(settings);
     GAResult result;
 
     std::vector<Individual> population = createInitialPopulation(costMatrix,settings.populationSize);
@@ -351,17 +361,28 @@ GAResult GeneticAlgorithm::run(const std::vector<std::vector<int>>& costMatrix,c
     for (int generation = 0; generation <= settings.generations; generation++) {
         Individual currentBest = getBestIndividual(population);
 
-        if (currentBest.cost < globalBest.cost) {
-            globalBest = currentBest;
-            fail = 0;
-        }else {
-            fail++;
+        if (generation > 0){
+            if (currentBest.cost < globalBest.cost){
+                globalBest = currentBest;
+                fail = 0;
+            } else{
+                fail++;
+            }
         }
 
         GenerationInfo info;
+
         info.generationNumber = generation;
-        info.bestIndividual = currentBest;
-        info.bestCost = currentBest.cost;
+        //все особи популяции по невозрастанию стоимости
+        info.population = population;
+        std::sort(info.population.begin(), info.population.end(), [](const Individual& a, const Individual& b){
+            return a.cost < b.cost;
+        });
+
+        info.individualCount = population.size();
+
+        info.bestIndividual = info.population[0];;
+        info.bestCost = info.population[0].cost;
 
         result.history.push_back(info);
 
@@ -383,4 +404,41 @@ GAResult GeneticAlgorithm::run(const std::vector<std::vector<int>>& costMatrix,c
     result.bestIndividual = globalBest;
 
     return result;
+}
+
+
+//проверка параметров настроек ГА
+void GeneticAlgorithm::validateSettings(const GASettings& settings){
+    if (settings.populationSize <= 0){
+        throw std::invalid_argument("Population size must be positive");
+    }
+    if (settings.generations < 0){
+        throw std::invalid_argument("Generations must not be negative");
+    }
+
+    if (settings.crossoverProbability < 0.0 || settings.crossoverProbability > 1.0){
+        throw std::invalid_argument("Crossover probability must be between 0 and 1");
+    }
+
+    if (settings.mutationProbability < 0.0 || settings.mutationProbability > 1.0){
+        throw std::invalid_argument("Mutation probability must be between 0 and 1");
+    }
+
+    if (settings.eliteCount < 0 ||settings.eliteCount > settings.populationSize){
+        throw std::invalid_argument("Elite count must be between 0 and population size");
+    }
+
+    if (settings.maxGenerationsWithoutImprovement < 0){
+        throw std::invalid_argument("Stagnation number must not be negative");
+    }
+
+    if (settings.roulettePointerCount < 0){
+        throw std::invalid_argument("Roulette pointer count must not be negative");
+    }
+
+    if (settings.selectionType == TournamentSelection){
+        if (settings.tournamentSize <= 0 || settings.tournamentSize > settings.populationSize){
+            throw std::invalid_argument("Tournament size must be between 1 and population size");
+        }
+    }
 }
