@@ -2,6 +2,8 @@
 #include "lib/raylib.h"
 #include "lib/tinyfiledialogs.h"
 #include "genetic/GeneticAlgorithm.h"
+#include "data/RandomMatrixGenerator.h"
+#include "data/MatrixReader.h"
 #include <iostream>
 #include <algorithm>
 #include <cmath>
@@ -257,10 +259,22 @@ public:
     GASettings settings;
     GAResult result;
 
-    void getGAResult()
+    std::string getGAResult()
     {
         GeneticAlgorithm ga;
-        result = ga.run(costMatrix, settings);
+        std::string errorMessage = "";
+        try
+        {
+            result = ga.run(costMatrix, settings);
+            screen = VISUALIZATION;
+            errorMessage = "";
+        }
+        catch(const std::exception& e)
+        {
+            errorMessage = e.what();
+            screen = MENU;
+        }
+        return errorMessage;
     }
 
     // Отображение меню
@@ -343,6 +357,9 @@ public:
 
         if (btnRandomMtx.isClicked()) {
             // Здесь вызов генерации случайной матрицы
+            RandomMatrixGenerator generator;
+            costMatrix = generator.generate(nbs[10].number);
+            errorMessage = getGAResult();
             screen = VISUALIZATION;
         }
         if (btnLoadMtx.isClicked()) {
@@ -357,7 +374,17 @@ public:
                 std::string pathString = selectPath;
                 std::cout << pathString << std::endl;
                 // Дальше запускаем функцию загрузки и валидации матрицы в ГА
-                bool someError = true;
+                bool someError = false;
+                try
+                {
+                    MatrixReader reader;
+                    costMatrix = reader.read(pathString);
+                    errorMessage = getGAResult();
+                }
+                catch(const std::exception& e)
+                {
+                    someError = true;   
+                }
                 if (someError) {
                     errorMessage = "Invalid file format";
                 } else {
@@ -703,8 +730,10 @@ public:
         if (btnBack.isClicked()) {
             screen = MENU;
             currStep = 0;
+            currIndividual = 0;
             points.clear();
             table = Table(3, 0, 7, 60, 60);
+            scale = Scaling();
         }
     }
 
@@ -781,17 +810,7 @@ public:
                 }
             }
 
-            try
-            {
-                getGAResult();
-                screen = VISUALIZATION;
-                errorMessage = "";
-            }
-            catch(const std::exception& e)
-            {
-                errorMessage = e.what();
-                screen = MENU;
-            }
+            errorMessage = getGAResult();
         }
     }
 
@@ -829,6 +848,13 @@ int main() {
     }
     menu_nb.emplace_back(720, 525, 60, 40); // Ячейка для значений отбора
     menu_nb.back().setNumber(5);
+
+    // Ячейка для выбора размера матрицы для генерации
+    menu_nb.emplace_back(380, 180, 60, 60);
+    menu_nb.back().minN = 2;
+    menu_nb.back().maxN = 1000;
+    menu_nb.back().setNumber(10);
+
 
     std::vector<NumberBox> vis_nb = {};
     std::vector<NumberBox> mtx_nb;
