@@ -326,9 +326,10 @@ public:
         // Передача настроек в настройки алгоритма
         settings.populationSize = nbs[0].number;
         settings.eliteCount = nbs[1].number;
-        settings.maxGenerationsWithoutImprovement = nbs[2].number;
-        settings.crossoverProbability = nbs[4].number;
-        settings.mutationProbability = nbs[5].number;
+        settings.generations = nbs[2].number;
+        settings.maxGenerationsWithoutImprovement = nbs[3].number;
+        settings.crossoverProbability = (float)(nbs[4].number)/100;
+        settings.mutationProbability = (float)(nbs[5].number)/100;
         
         settings.mutationType = static_cast<MutationType>(nbs[6].number);
         settings.crossoverType = static_cast<CrossoverType>(nbs[7].number);
@@ -460,7 +461,7 @@ public:
         for(size_t i = 1; i < table.getRows(); ++i)
         {
             std::vector<std::string> row;
-            int workId = result.history[currStep-1].bestIndividual.chromosome[i-1];
+            int workId = result.history[currStep-1].population[currIndividual].chromosome[i-1];
             row.push_back(std::to_string(i-1));
             row.push_back(std::to_string(workId));
             row.push_back(std::to_string(costMatrix[i-1][workId]));
@@ -540,18 +541,26 @@ public:
 
         if(btnNextIndividual.isClicked())
         {
-            if (currIndividual + 1 < 10)
+            if (currIndividual + 1 < result.history[currStep-1].population.size())
             {
                 currIndividual++;
+                updateTable(table, currStep, currIndividual);
+            } else
+            {
+                currIndividual = 0;
                 updateTable(table, currStep, currIndividual);
             }
         }
 
         if(btnPrevIndividual.isClicked())
         {
-            if (currIndividual - 1 >= 0)
+            if (currIndividual > 0)
             {
                 currIndividual--;
+                updateTable(table, currStep, currIndividual);
+            } else
+            {
+                currIndividual = result.history[currStep-1].population.size() - 1;
                 updateTable(table, currStep, currIndividual);
             }
         }
@@ -562,7 +571,9 @@ public:
             DrawText("Current best individual:", 40, 75, 25, DARKGRAY);
             Rectangle paramsArea = {220, 240, 300, 200};
             DrawText(TextFormat("Curr step: %d", currStep), paramsArea.x + 5, paramsArea.y + 5, 22, DARKGRAY);
-            DrawText(TextFormat("Current best\ncost: %d", result.history[currStep-1].bestCost), paramsArea.x + 5, paramsArea.y + 35, 22, DARKGRAY);
+            DrawText(TextFormat("Current best\ncost: %d", result.history[currStep-1].bestCost), paramsArea.x + 5, paramsArea.y + 50, 22, DARKGRAY);
+            DrawText(TextFormat("Current\ncost: %d", result.history[currStep-1].population[currIndividual].cost), paramsArea.x + 5, paramsArea.y + 100, 22, DARKGRAY);
+            DrawText(TextFormat("Current\nindividual: %d", currIndividual+1), paramsArea.x + 5, paramsArea.y + 150, 22, DARKGRAY);
         }
 
 
@@ -580,12 +591,14 @@ public:
 
         if (btnNextStep.isClicked() && currStep < result.history.size()) 
         {
+            currIndividual = 0;
             addPoint(points, graphArea, scale, currStep);
             updateTable(table, currStep, currIndividual);
         }
 
         if (btnSkipSteps.isClicked() && currStep < result.history.size()) 
         {
+            currIndividual = 0;
             for(size_t i = currStep; i < result.history.size(); ++i)
             {
                 addPoint(points, graphArea, scale, currStep);
@@ -595,6 +608,7 @@ public:
 
         if (btnPrevStep.isClicked() && currStep > 1)
         {
+            currIndividual = 0;
             removePoint(points, graphArea, scale, currStep);
             updateTable(table, currStep, currIndividual);
         }
@@ -602,6 +616,7 @@ public:
         if (btnReturnToStart.isClicked() && currStep > 1) 
         {
             currStep = 0;
+            currIndividual = 0;
             scale = Scaling();
             points.clear();
             addPoint(points, graphArea, scale, currStep);
@@ -693,7 +708,7 @@ public:
         }
     }
 
-    void mtx_creation_screen(std::vector<NumberBox> &nbs) {
+    void mtx_creation_screen(std::vector<NumberBox> &nbs, std::string &errorMessage) {
         DrawText("Cost matrix creation", 100, 50, 30, DARKGRAY);
         Button btnBack(10, 5, 90, 30, "Back", 22);
         Button btnContinue(630, 500, 160, 60, "Continue", 26);
@@ -765,8 +780,18 @@ public:
                     costMatrix[i][j] = nbs[i*nbs.back().maxN + j].number;
                 }
             }
-            getGAResult();
-            screen = VISUALIZATION;
+
+            try
+            {
+                getGAResult();
+                screen = VISUALIZATION;
+                errorMessage = "";
+            }
+            catch(const std::exception& e)
+            {
+                errorMessage = e.what();
+                screen = MENU;
+            }
         }
     }
 
@@ -830,7 +855,7 @@ int main() {
                 gui.visualization_screen(vis_nb);
                 break;
             case MTX_CREATION:
-                gui.mtx_creation_screen(mtx_nb);
+                gui.mtx_creation_screen(mtx_nb, errorMessage);
                 break;
             default:
                 std::cerr << "Error: Switching to an unknown screen" << std::endl;
