@@ -43,7 +43,7 @@ struct GASettings {
 };
 
 //инфа об одном поколении
-struct GenerationInfo{
+struct GenerationInfo {
     //номер поколения
     int generationNumber = 0;
 
@@ -60,19 +60,22 @@ struct GenerationInfo{
     int bestCost = 0;
 };
 
-struct GAResult{
+struct GAResult {
     //лучшая особь среди всех поколений
     Individual bestIndividual;
 
     std::vector<GenerationInfo> history;
 
     //получение поколения по его индексу
-    const GenerationInfo& getGeneration(int index) const;
+    const GenerationInfo &getGeneration(int index) const;
 };
 
-class GeneticAlgorithm{
+class GeneticAlgorithm {
 public:
-    GAResult run(const std::vector<std::vector<int>>& costMatrix, const GASettings& settings);
+    GAResult run(const std::vector<std::vector<int> > &costMatrix, const GASettings &settings,
+                 float &loading_percentage, bool &stop);
+
+    GAResult run(const std::vector<std::vector<int>> & vector, const GASettings & settings);
 
 private:
     std::mt19937 rng{std::random_device{}()};
@@ -82,57 +85,58 @@ private:
     double randomDouble(double left, double right);
 
     //вычисление стоимости решения
-    int calculateCost(const std::vector<int>& chromosome, const std::vector<std::vector<int>>& costMatrix);
+    int calculateCost(const std::vector<int> &chromosome, const std::vector<std::vector<int> > &costMatrix);
 
     //вычисление числа приспособленности
     double calculateFitness(int cost);
 
-    void evaluateIndividual(Individual& individual, const std::vector<std::vector<int>>& costMatrix);
+    void evaluateIndividual(Individual &individual, const std::vector<std::vector<int> > &costMatrix);
 
     //создание начальной популяции
     std::vector<Individual> createInitialPopulation(
-        const std::vector<std::vector<int>>& costMatrix,
+        const std::vector<std::vector<int> > &costMatrix,
         int populationSize
     );
 
     std::vector<int> createRandomChromosome(int n);
 
     //создание решения + оценка его
-    Individual createRandomIndividual(const std::vector<std::vector<int>>& costMatrix);
+    Individual createRandomIndividual(const std::vector<std::vector<int> > &costMatrix);
 
 
-    Individual getBestIndividual(const std::vector<Individual>& population);
+    Individual getBestIndividual(const std::vector<Individual> &population);
 
     //турнирный отбор
-    Individual tournamentSelection(const std::vector<Individual>& population, int tournamentSize);
+    Individual tournamentSelection(const std::vector<Individual> &population, int tournamentSize);
 
     //отбор стохастической рулеткой
-    std::vector<Individual> stochasticRouletteSelection(const std::vector<Individual>& population,int pointerCount);
+    std::vector<Individual> stochasticRouletteSelection(const std::vector<Individual> &population, int pointerCount);
 
     //общий выбор родителя по настройкам
-    Individual selectParent(const std::vector<Individual>& population, const GASettings& settings);
+    Individual selectParent(const std::vector<Individual> &population, const GASettings &settings);
 
     //мутация(будет перестановка случайных работ)
-    void mutateSwap(Individual& individual);
+    void mutateSwap(Individual &individual);
 
     //мутация(разворачивание подмассива внутри хромосомы)
-    void mutateInversion(Individual& individual);
+    void mutateInversion(Individual &individual);
 
     //общий выбор мутациии по настройкам
-    void mutateIndividual(Individual& individual, const GASettings& settings);
+    void mutateIndividual(Individual &individual, const GASettings &settings);
 
     //упорядоченное скрещивание
-    Individual orderedCrossover(const Individual& parent1, const Individual& parent2);
+    Individual orderedCrossover(const Individual &parent1, const Individual &parent2);
 
     //позиционное скрещивание
-    Individual positionCrossover(const Individual& parent1, const Individual& parent2);
-    
+    Individual positionCrossover(const Individual &parent1, const Individual &parent2);
+
     //общий выбор скрещивания по настройкам
-    Individual crossoverIndividuals(const Individual& parent1, const Individual& parent2, const GASettings& settings);
+    Individual crossoverIndividuals(const Individual &parent1, const Individual &parent2, const GASettings &settings);
 
     //создание нового поколения, исходя из старого
-    std::vector<Individual> createNextGeneration(std::vector<Individual>& population, const std::vector<std::vector<int>>& costMatrix,
-        const GASettings& settings);
+    std::vector<Individual> createNextGeneration(std::vector<Individual> &population,
+                                                 const std::vector<std::vector<int> > &costMatrix,
+                                                 const GASettings &settings);
 
-    void validateSettings(const GASettings& settings);
+    void validateSettings(const GASettings &settings);
 };
