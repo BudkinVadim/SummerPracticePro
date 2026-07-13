@@ -11,14 +11,14 @@ int GeneticAlgorithm::randomInt(int left, int right) {
 }
 
 //генерация дробного
-double GeneticAlgorithm::randomDouble(double left, double right){
+double GeneticAlgorithm::randomDouble(double left, double right) {
     std::uniform_real_distribution<double> dist(left, right);
     return dist(rng);
 }
 
 //получение поколения по его индексу
-const GenerationInfo& GAResult::getGeneration(int index) const{
-    if (index < 0 || index >= history.size()){
+const GenerationInfo &GAResult::getGeneration(int index) const {
+    if (index < 0 || index >= history.size()) {
         throw std::out_of_range("Generation index is out of range");
     }
 
@@ -26,10 +26,11 @@ const GenerationInfo& GAResult::getGeneration(int index) const{
 }
 
 //стоимость решения
-int GeneticAlgorithm::calculateCost(const std::vector<int>& chromosome, const std::vector<std::vector<int>>& costMatrix){
+int GeneticAlgorithm::calculateCost(const std::vector<int> &chromosome,
+                                    const std::vector<std::vector<int> > &costMatrix) {
     int total = 0;
 
-    for (int cand = 0; cand < chromosome.size(); cand++){
+    for (int cand = 0; cand < chromosome.size(); cand++) {
         total += costMatrix[cand][chromosome[cand]];
     }
 
@@ -37,12 +38,12 @@ int GeneticAlgorithm::calculateCost(const std::vector<int>& chromosome, const st
 }
 
 //число приспособленности
-double GeneticAlgorithm::calculateFitness(int cost){
+double GeneticAlgorithm::calculateFitness(int cost) {
     return 1.0 / (1.0 + cost);
 }
 
 //оценка особи
-void GeneticAlgorithm::evaluateIndividual(Individual& individual, const std::vector<std::vector<int>>& costMatrix) {
+void GeneticAlgorithm::evaluateIndividual(Individual &individual, const std::vector<std::vector<int> > &costMatrix) {
     individual.cost = calculateCost(individual.chromosome, costMatrix);
     individual.fitness = calculateFitness(individual.cost);
 }
@@ -59,7 +60,7 @@ std::vector<int> GeneticAlgorithm::createRandomChromosome(int n) {
 }
 
 //создание рандомной особи
-Individual GeneticAlgorithm::createRandomIndividual(const std::vector<std::vector<int>>& costMatrix) {
+Individual GeneticAlgorithm::createRandomIndividual(const std::vector<std::vector<int> > &costMatrix) {
     int n = costMatrix.size();
     Individual individual;
 
@@ -70,11 +71,12 @@ Individual GeneticAlgorithm::createRandomIndividual(const std::vector<std::vecto
 }
 
 //начальная популяция
-std::vector<Individual> GeneticAlgorithm::createInitialPopulation(const std::vector<std::vector<int>>& costMatrix, int populationSize){
-    std::vector<Individual> population(populationSize); 
+std::vector<Individual> GeneticAlgorithm::createInitialPopulation(const std::vector<std::vector<int> > &costMatrix,
+                                                                  int populationSize) {
+    std::vector<Individual> population(populationSize);
 
     for (int i = 0; i < populationSize; i++) {
-        population[i] = createRandomIndividual(costMatrix); 
+        population[i] = createRandomIndividual(costMatrix);
     }
 
     return population;
@@ -82,11 +84,11 @@ std::vector<Individual> GeneticAlgorithm::createInitialPopulation(const std::vec
 
 //поиск лучшего индивидума в популяции
 Individual GeneticAlgorithm::getBestIndividual(
-    const std::vector<Individual>& population
+    const std::vector<Individual> &population
 ) {
     Individual best = population[0];
 
-    for (const Individual& individual : population) {
+    for (const Individual &individual: population) {
         if (individual.cost < best.cost) {
             best = individual;
         }
@@ -96,7 +98,7 @@ Individual GeneticAlgorithm::getBestIndividual(
 }
 
 //турнир
-Individual GeneticAlgorithm::tournamentSelection(const std::vector<Individual>& population, int tournamentSize){
+Individual GeneticAlgorithm::tournamentSelection(const std::vector<Individual> &population, int tournamentSize) {
     int bestIndex = randomInt(0, population.size() - 1);
 
     for (int i = 1; i < tournamentSize; i++) {
@@ -111,13 +113,14 @@ Individual GeneticAlgorithm::tournamentSelection(const std::vector<Individual>& 
 }
 
 //стохастическая универсальная рулетка
-std::vector<Individual> GeneticAlgorithm::stochasticRouletteSelection(const std::vector<Individual>& population,int pointerCount){
+std::vector<Individual> GeneticAlgorithm::stochasticRouletteSelection(const std::vector<Individual> &population,
+                                                                      int pointerCount) {
     std::vector<Individual> selectedParents;
     if (pointerCount <= 0) return selectedParents;
 
     double sumFitness = 0.0;
 
-    for (const Individual& individual : population) {
+    for (const Individual &individual: population) {
         sumFitness += individual.fitness;
     }
 
@@ -141,12 +144,12 @@ std::vector<Individual> GeneticAlgorithm::stochasticRouletteSelection(const std:
     return selectedParents;
 }
 
-Individual GeneticAlgorithm::selectParent(const std::vector<Individual>& population,const GASettings& settings) {
+Individual GeneticAlgorithm::selectParent(const std::vector<Individual> &population, const GASettings &settings) {
     return tournamentSelection(population, settings.tournamentSize);
 }
 
 //мутация перестановкой генов
-void GeneticAlgorithm::mutateSwap(Individual& individual) {
+void GeneticAlgorithm::mutateSwap(Individual &individual) {
     int n = individual.chromosome.size();
 
     int first = randomInt(0, n - 1);
@@ -156,7 +159,7 @@ void GeneticAlgorithm::mutateSwap(Individual& individual) {
 }
 
 //мутация инверсией подмассива
-void GeneticAlgorithm::mutateInversion(Individual& individual) {
+void GeneticAlgorithm::mutateInversion(Individual &individual) {
     int n = individual.chromosome.size();
     int left = randomInt(0, n - 1);
     int right = randomInt(0, n - 1);
@@ -171,16 +174,16 @@ void GeneticAlgorithm::mutateInversion(Individual& individual) {
 }
 
 //выбор мутации
-void GeneticAlgorithm::mutateIndividual(Individual& individual, const GASettings& settings) {
-    if (settings.mutationType == InversionMutation){
+void GeneticAlgorithm::mutateIndividual(Individual &individual, const GASettings &settings) {
+    if (settings.mutationType == InversionMutation) {
         mutateInversion(individual);
-    }else{
+    } else {
         mutateSwap(individual);
     }
 }
 
 //упорядоченное скрещивание
-Individual GeneticAlgorithm::orderedCrossover(const Individual& parent1,const Individual& parent2){
+Individual GeneticAlgorithm::orderedCrossover(const Individual &parent1, const Individual &parent2) {
     int n = parent1.chromosome.size();
 
     Individual child;
@@ -193,7 +196,7 @@ Individual GeneticAlgorithm::orderedCrossover(const Individual& parent1,const In
         std::swap(left, right);
     }
 
-    std::vector<bool> used(n, false);//для проверки занятости работы
+    std::vector<bool> used(n, false); //для проверки занятости работы
 
     for (int i = left; i <= right; i++) {
         int gene = parent1.chromosome[i];
@@ -225,7 +228,7 @@ Individual GeneticAlgorithm::orderedCrossover(const Individual& parent1,const In
 }
 
 //позиционное скрещивание
-Individual GeneticAlgorithm::positionCrossover(const Individual& parent1, const Individual& parent2) {
+Individual GeneticAlgorithm::positionCrossover(const Individual &parent1, const Individual &parent2) {
     int n = parent1.chromosome.size();
 
     Individual child;
@@ -267,8 +270,8 @@ Individual GeneticAlgorithm::positionCrossover(const Individual& parent1, const 
 }
 
 //выбор скрещивания
-Individual GeneticAlgorithm::crossoverIndividuals(const Individual& parent1, const Individual& parent2,
-    const GASettings& settings) {
+Individual GeneticAlgorithm::crossoverIndividuals(const Individual &parent1, const Individual &parent2,
+                                                  const GASettings &settings) {
     if (settings.crossoverType == PositionalCrossing) {
         return positionCrossover(parent1, parent2);
     }
@@ -276,13 +279,14 @@ Individual GeneticAlgorithm::crossoverIndividuals(const Individual& parent1, con
 }
 
 //создание нового поколения
-std::vector<Individual> GeneticAlgorithm::createNextGeneration(std::vector<Individual>& population, const std::vector<std::vector<int>>& costMatrix,
-    const GASettings& settings) {
+std::vector<Individual> GeneticAlgorithm::createNextGeneration(std::vector<Individual> &population,
+                                                               const std::vector<std::vector<int> > &costMatrix,
+                                                               const GASettings &settings) {
     std::vector<Individual> newPopulation;
 
-    std::sort(population.begin(), population.end(), [](const Individual& a, const Individual& b){
-            return a.cost < b.cost;
-        }
+    std::sort(population.begin(), population.end(), [](const Individual &a, const Individual &b) {
+                  return a.cost < b.cost;
+              }
     );
 
     //элитные особи переходят в след этап буз из
@@ -348,24 +352,27 @@ std::vector<Individual> GeneticAlgorithm::createNextGeneration(std::vector<Indiv
 }
 
 //главная функция
-GAResult GeneticAlgorithm::run(const std::vector<std::vector<int>>& costMatrix,const GASettings& settings) {
+GAResult GeneticAlgorithm::run(const std::vector<std::vector<int> > &costMatrix, const GASettings &settings,
+                               float &loading_percentage, bool &stop) {
     validateSettings(settings);
     GAResult result;
 
-    std::vector<Individual> population = createInitialPopulation(costMatrix,settings.populationSize);
+    std::vector<Individual> population = createInitialPopulation(costMatrix, settings.populationSize);
 
     Individual globalBest = getBestIndividual(population);
 
     int fail = 0;
 
-    for (int generation = 0; generation <= settings.generations; generation++) {
+    for (int generation = 0; generation <= settings.generations && !stop; generation++) {
         Individual currentBest = getBestIndividual(population);
 
-        if (generation > 0){
-            if (currentBest.cost < globalBest.cost){
+        loading_percentage = (float)generation / settings.generations;
+
+        if (generation > 0) {
+            if (currentBest.cost < globalBest.cost) {
                 globalBest = currentBest;
                 fail = 0;
-            } else{
+            } else {
                 fail++;
             }
         }
@@ -375,7 +382,7 @@ GAResult GeneticAlgorithm::run(const std::vector<std::vector<int>>& costMatrix,c
         info.generationNumber = generation;
         //все особи популяции по невозрастанию стоимости
         info.population = population;
-        std::sort(info.population.begin(), info.population.end(), [](const Individual& a, const Individual& b){
+        std::sort(info.population.begin(), info.population.end(), [](const Individual &a, const Individual &b) {
             return a.cost < b.cost;
         });
 
@@ -386,13 +393,14 @@ GAResult GeneticAlgorithm::run(const std::vector<std::vector<int>>& costMatrix,c
 
         result.history.push_back(info);
 
-        bool exitNoImprovement = settings.maxGenerationsWithoutImprovement > 0 && fail >= settings.maxGenerationsWithoutImprovement;
+        bool exitNoImprovement = settings.maxGenerationsWithoutImprovement > 0 && fail >= settings.
+                                 maxGenerationsWithoutImprovement;
 
         if (exitNoImprovement) {
             break;
         }
 
-        if (generation < settings.generations){
+        if (generation < settings.generations) {
             population = createNextGeneration(
                 population,
                 costMatrix,
@@ -406,38 +414,45 @@ GAResult GeneticAlgorithm::run(const std::vector<std::vector<int>>& costMatrix,c
     return result;
 }
 
+//версия без остановки и возвращения процента загрузки
+GAResult GeneticAlgorithm::run(const std::vector<std::vector<int> > &vector, const GASettings &settings) {
+    float fl = 0;
+    bool bl = false;
+    return run(vector, settings, fl, bl);
+}
+
 
 //проверка параметров настроек ГА
-void GeneticAlgorithm::validateSettings(const GASettings& settings){
-    if (settings.populationSize <= 0){
+void GeneticAlgorithm::validateSettings(const GASettings &settings) {
+    if (settings.populationSize <= 0) {
         throw std::invalid_argument("Population size must be positive");
     }
-    if (settings.generations < 0){
+    if (settings.generations < 0) {
         throw std::invalid_argument("Generations must not be negative");
     }
 
-    if (settings.crossoverProbability < 0.0 || settings.crossoverProbability > 1.0){
+    if (settings.crossoverProbability < 0.0 || settings.crossoverProbability > 1.0) {
         throw std::invalid_argument("Crossover probability must be between 0 and 1");
     }
 
-    if (settings.mutationProbability < 0.0 || settings.mutationProbability > 1.0){
+    if (settings.mutationProbability < 0.0 || settings.mutationProbability > 1.0) {
         throw std::invalid_argument("Mutation probability must be between 0 and 1");
     }
 
-    if (settings.eliteCount < 0 ||settings.eliteCount > settings.populationSize){
+    if (settings.eliteCount < 0 || settings.eliteCount > settings.populationSize) {
         throw std::invalid_argument("Elite count must be between 0 and population size");
     }
 
-    if (settings.maxGenerationsWithoutImprovement < 0){
+    if (settings.maxGenerationsWithoutImprovement < 0) {
         throw std::invalid_argument("Stagnation number must not be negative");
     }
 
-    if (settings.roulettePointerCount < 0){
+    if (settings.roulettePointerCount < 0) {
         throw std::invalid_argument("Roulette pointer count must not be negative");
     }
 
-    if (settings.selectionType == TournamentSelection){
-        if (settings.tournamentSize <= 0 || settings.tournamentSize > settings.populationSize){
+    if (settings.selectionType == TournamentSelection) {
+        if (settings.tournamentSize <= 0 || settings.tournamentSize > settings.populationSize) {
             throw std::invalid_argument("Tournament size must be between 1 and population size");
         }
     }

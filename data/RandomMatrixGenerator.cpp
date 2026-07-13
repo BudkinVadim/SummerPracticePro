@@ -3,7 +3,7 @@
 #include <random>
 #include <stdexcept>
 
-// Создание рандомной квадратной матрицы
+// Создание случайной квадратной матрицы
 std::vector<std::vector<int>> RandomMatrixGenerator::generate(int size,int minCost,int maxCost){
     validateParameters(size, minCost, maxCost);
 
