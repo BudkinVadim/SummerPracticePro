@@ -12,6 +12,17 @@
 #include "../ui_utils/Table.h"
 
 #include <future>
+#include <limits>
+
+struct Scaling {
+    int minX;
+    int maxX;
+    int minY;
+    int maxY;
+
+    Scaling() : minX(0), maxX(0), minY(std::numeric_limits<int>::max()), maxY(0) {
+    }
+};
 
 enum Screen {
     EXIT,

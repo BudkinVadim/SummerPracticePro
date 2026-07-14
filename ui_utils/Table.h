@@ -5,16 +5,6 @@
 #include  <vector>
 #include <stdexcept>
 
-struct Scaling {
-    int minX;
-    int maxX;
-    int minY;
-    int maxY;
-
-    Scaling() : minX(0), maxX(0), minY(10000000), maxY(0) {
-    }
-};
-
 class Table {
 private:
     std::vector<std::vector<std::string> > data;
