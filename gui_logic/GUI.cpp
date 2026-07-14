@@ -517,7 +517,7 @@ void GUI::addPoint(std::vector<Vector2> &points, const Rectangle &graphArea, Sca
 
 void GUI::removePoint(std::vector<Vector2> &points, const Rectangle &graphArea, Scaling &scale, int &currStep) {
     currStep--;
-    if (result.history[currStep].bestCost == scale.minY) scale.minY = 10000;
+    if (result.history[currStep].bestCost == scale.minY) scale.minY = std::numeric_limits<int>::max();
     if (result.history[currStep].bestCost == scale.maxY) scale.maxY = 0;
 
     points.pop_back();
